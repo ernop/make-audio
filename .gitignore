@@ -1,0 +1,8 @@
+old/*
+output/*
+txt/*
+working/*
+apikey.txt
+**/*.json
+goog/**
+*.txt
