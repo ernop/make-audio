@@ -3,6 +3,7 @@ import sys
 from pydub import AudioSegment
 import os
 import subprocess
+import clean
 
 api_key=open('apikey.txt','r').read().strip()
 endpoint = 'https://api.openai.com/v1/audio/speech'
@@ -12,7 +13,6 @@ headers = {
     'Content-Type': 'application/json'
 }
 
-
 voices = 'alloy,echo,fable,onyx,nova,shimmer'.split(',')
 #alloy - boring, male-female ish? unclear. Really very very deep.
 #echo - male, high, young, clear, annoying.
@@ -21,21 +21,31 @@ voices = 'alloy,echo,fable,onyx,nova,shimmer'.split(',')
 #onyx - the standard chatgpt voice, laconic, artificial waiting times
 #shimmer - deep female, oh this is scarlett
 
-title='<filename>' #file of this name.txt must be in output.
-input_text = open(f'working/{title}.txt', 'r').read()
+title='christopher-priest-inverted-world' #file of this name.txt must be in output.
+raw_input_file=f'input/{title}.txt'
+clean.do(raw_input_file)
+clean_input_file=raw_input_file.replace('.txt', '.clean.txt')
+
+input_text = open(clean_input_file, 'r').read()
 format='mp3'
 voice='onyx'
+voices=['onyx',]
+voices=['fable',]
+
+
 
 #input limit, at some point this will extend.
 #TODO do this more, and switch to elevenlabs.
 LIMIT=4000
 
 def split_text(text, limit):
-    sections = text.split("\n\n")
+    sections = text.split("\n")
     result = []
     current_chunk = ""
 
     for section in sections:
+        section=section.replace('\r',' ')
+        section=section.strip()
         if len(current_chunk) + len(section) + 2 <= limit:
             if current_chunk:
                 current_chunk += "\r\n\r\n" + section
@@ -49,54 +59,56 @@ def split_text(text, limit):
     if current_chunk:
         result.append(current_chunk)
 
-    return result
+    return result[:2]
 
 parts=split_text(input_text, LIMIT)
 
-generated_files=[]
+
 print(f"got: {len(parts)} parts!")
 
-ii=1
-for part in parts:
+
+for voice in voices:
+    ii=1
     voice = voice.strip()
+    generated_files=[]
+    for part in parts:
+        data = {
+            'model': 'tts-1',
+            'input': part,
+            'voice': voice,
+            'format': 'mp3'
+        }
 
-    data = {
-        'model': 'tts-1',
-        'input': part,
-        'voice': voice,
-        'format': 'mp3'
-    }
+        fn = f'working/{title}-voice_{voice}-{ii}.{format}'
 
-    fn = f'working/{title}-voice_{voice[:3]}-{ii}.{format}'
+        if os.path.exists(fn):
+            print("skipping existing file.",fn)
+            generated_files.append(fn)
+            ii=ii+1
+            continue
 
-    if os.path.exists(fn):
-        print("skipping existing file.",fn)
-        generated_files.append(fn)
+        print(fn)
+
+        response = requests.post(endpoint, headers=headers, json=data)
+
+        if response.status_code == 200:
+            with open(fn, 'wb') as audio_file:
+                audio_file.write(response.content)
+            print(f'Audio saved as {fn}')
+            generated_files.append(fn)
+        else:
+            print('Error:', response.status_code, response.text)
+            import ipdb;ipdb.set_trace()
         ii=ii+1
-        continue
 
-    print(fn)
+    # Create a file list for ffmpeg
+    with open('working/file_list.txt', 'w') as file_list:
+        for file in generated_files:
+            file_list.write(f"file '{os.path.abspath(file)}'\n")
 
-    response = requests.post(endpoint, headers=headers, json=data)
+    # Concatenate MP3 files without re-encoding
+    output_file = f'output/{title}-{voice}.mp3'
+    ffmpeg_command = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'working/file_list.txt', '-c', 'copy', output_file]
 
-    if response.status_code == 200:
-        with open(fn, 'wb') as audio_file:
-            audio_file.write(response.content)
-        print(f'Audio saved as {fn}')
-        generated_files.append(fn)
-    else:
-        print('Error:', response.status_code, response.text)
-        import ipdb;ipdb.set_trace()
-    ii=ii+1
-
-# Create a file list for ffmpeg
-with open('working/file_list.txt', 'w') as file_list:
-    for file in generated_files:
-        file_list.write(f"file '{os.path.abspath(file)}'\n")
-
-# Concatenate MP3 files without re-encoding
-output_file = f'output/{title}-{voice}.mp3'
-ffmpeg_command = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'working/file_list.txt', '-c', 'copy', output_file]
-
-subprocess.run(ffmpeg_command)
-print(f'Concatenated audio saved as {output_file}')
+    subprocess.run(ffmpeg_command)
+    print(f'Concatenated audio saved as {output_file}')

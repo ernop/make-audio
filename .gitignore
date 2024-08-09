@@ -1,8 +1,11 @@
 old/*
-output/*
+input/
+working/
+output/
 txt/*
 working/*
 apikey.txt
 **/*.json
 goog/**
 *.txt
+__pycache__

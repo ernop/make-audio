@@ -15,8 +15,13 @@ def load_replacements(file_path):
     with open(file_path, 'r', encoding=encoding, errors='replace') as f:
         for line in f:
             try:
-                original, replacement = line.strip().split(maxsplit=1)
-                replacements[original] = replacement
+                lsp  = line.strip().split(maxsplit=1)
+                if len(lsp)==2:
+                    original, replacement = lsp
+                    replacements[original] = replacement
+                else:
+                    original = lsp[0]
+                    replacements[original] = " "
             except ValueError:
                 print(f"Warning: Skipping invalid line in replacements file: {line.strip()}")
     return replacements
@@ -50,6 +55,12 @@ def main(input_file, output_file, replacements_file):
         with open(output_file, 'w', encoding='ascii') as f:
             f.write(cleaned_text)
         print(f"Cleaned text has been written to {output_file}")
+
+def do(path):
+    input_file = path
+    output_file = path.replace('.txt', '.clean.txt')
+    replacements_file = 'replacements.txt'
+    main(input_file, output_file, replacements_file)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
