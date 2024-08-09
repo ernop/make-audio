@@ -4,6 +4,8 @@ from pydub import AudioSegment
 import os
 import subprocess
 import clean
+import time
+import string
 
 api_key=open('apikey.txt','r').read().strip()
 endpoint = 'https://api.openai.com/v1/audio/speech'
@@ -59,7 +61,7 @@ def split_text(text, limit):
     if current_chunk:
         result.append(current_chunk)
 
-    return result[:2]
+    return result
 
 parts=split_text(input_text, LIMIT)
 
@@ -71,7 +73,12 @@ for voice in voices:
     ii=1
     voice = voice.strip()
     generated_files=[]
+    total_time = 0
+    times = []
+    
     for part in parts:
+        start_time = time.time()
+        
         data = {
             'model': 'tts-1',
             'input': part,
@@ -99,6 +106,22 @@ for voice in voices:
         else:
             print('Error:', response.status_code, response.text)
             import ipdb;ipdb.set_trace()
+        
+        end_time = time.time()
+        chunk_time = end_time - start_time
+        total_time += chunk_time
+        times.append(chunk_time)
+        
+        # Calculate average time of last 5 chunks (or all if less than 5)
+        avg_time = sum(times[-5:]) / len(times[-5:])
+        projected_total = avg_time * len(parts)
+        
+        print(string.format("Chunk %d/%d: %.2f seconds", ii, len(parts), chunk_time))
+        print(string.format("Total time so far: %.2f seconds", total_time))
+        print(string.format("Projected total time: %.2f seconds", projected_total))
+        print(string.format("Estimated time remaining: %.2f seconds", projected_total - total_time))
+        print("--------------------")
+        
         ii=ii+1
 
     # Create a file list for ffmpeg
