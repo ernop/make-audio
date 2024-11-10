@@ -15,6 +15,9 @@ def load_replacements(file_path):
     with open(file_path, 'r', encoding=encoding, errors='replace') as f:
         for line in f:
             try:
+                if not line.strip():
+                    replacements[line[0]]=' '
+                    continue
                 lsp  = line.strip().split(maxsplit=1)
                 if len(lsp)==2:
                     original, replacement = lsp

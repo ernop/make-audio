@@ -21,7 +21,7 @@ voices = 'alloy,echo,fable,onyx,nova,shimmer'.split(',')
 #onyx - the standard chatgpt voice, laconic, artificial waiting times. marble mouth
 #shimmer - deep female, oh this is scarlett
 
-title='equinoctal' #file of this name.txt must be in output.
+title='fishing' #file of this name.txt must be in output.
 #ainulindale.txt
 #farmer-giles
 raw_input_file=f'input/{title}.txt'
@@ -32,7 +32,7 @@ clean_input_file=raw_input_file
 import codecs
 input_text = codecs.open(clean_input_file, 'r', 'utf8').read()
 format='mp3'
-voices=['alloy',]
+voices=['echo',]
 #voices=['fable',]
 #voices=['shimmer',]
 
